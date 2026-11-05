@@ -5,9 +5,9 @@
 #include <DHT.h>
 
 // ===== DATOS WIFI Y THINGSPEAK =====
-const char* WIFI_NOMBRE = "Posada-Martinez1";
-const char* WIFI_CLAVE  = "Baronch0y0limpia#";
-const char* API_KEY     = "PUM1GTXR6C6059C0";
+const char* WIFI_NOMBRE = "Mi wifi1";
+const char* WIFI_CLAVE  = "Micontraseña";
+const char* API_KEY     = "Key";
 
 // ===== SENSORES =====
 #define PIN_DHT D1
