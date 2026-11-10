@@ -249,5 +249,44 @@
 
   </main>
 
+<script>
+const CANAL = "3554557";
+
+async function actualizarDatos() {
+  try {
+    const respuesta = await fetch(
+      `https://api.thingspeak.com/channels/${CANAL}/feeds/last.json`
+    );
+
+    if (!respuesta.ok) {
+      throw new Error("No se pudo consultar ThingSpeak");
+    }
+
+    const datos = await respuesta.json();
+
+    document.getElementById("temperatura").textContent =
+      datos.field1 ?? "--";
+
+    document.getElementById("humedadAire").textContent =
+      datos.field2 ?? "--";
+
+    document.getElementById("humedadSuelo").textContent =
+      datos.field3 ?? "--";
+
+    document.getElementById("iluminacion").textContent =
+      datos.field4 == null ? "--" :
+      Number(datos.field4) === 100 ? "Con luz" : "Oscuridad";
+
+    console.log("Datos actualizados:", datos);
+
+  } catch (error) {
+    console.error("Error de conexión:", error);
+  }
+}
+
+actualizarDatos();
+setInterval(actualizarDatos, 20000);
+</script>
+
 </body>
 </html>
