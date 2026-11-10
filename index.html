@@ -1,1 +1,251 @@
 
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebelión Botánica | Invernadero Inteligente</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #080d0a;
+      color: #e8f1eb;
+      padding: 20px;
+    }
+
+    .contenedor {
+      max-width: 850px;
+      margin: 25px auto;
+      background: #101a13;
+      border: 1px solid #263d2d;
+      border-radius: 18px;
+      padding: 25px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 25px;
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #65df91;
+    }
+
+    .etiqueta {
+      background: #123c25;
+      color: #65df91;
+      padding: 8px 13px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    .estado-conexion {
+      color: #aab9ad;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .indicadores {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .tarjeta {
+      background: #17251b;
+      border: 1px solid #263d2d;
+      border-radius: 13px;
+      padding: 20px;
+    }
+
+    .tarjeta h2 {
+      font-size: 16px;
+      margin-bottom: 18px;
+      color: #c5d9ca;
+    }
+
+    .valor {
+      font-size: 30px;
+      font-weight: bold;
+      color: #65df91;
+    }
+
+    .unidad {
+      font-size: 16px;
+      color: #aab9ad;
+    }
+
+    .controles {
+      margin-top: 30px;
+      border-top: 1px solid #263d2d;
+      padding-top: 25px;
+    }
+
+    .controles h2 {
+      font-size: 19px;
+      margin-bottom: 18px;
+    }
+
+    .modos {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    button {
+      border: 1px solid #35533d;
+      background: #17251b;
+      color: #dcebe0;
+      padding: 12px 18px;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button.seleccionado {
+      background: #176b38;
+      border-color: #65df91;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .actuador {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid #263d2d;
+    }
+
+    .actuador strong {
+      font-size: 16px;
+    }
+
+    .nota {
+      color: #91a397;
+      font-size: 12px;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+
+    footer {
+      text-align: center;
+      color: #718579;
+      font-size: 12px;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 550px) {
+      body {
+        padding: 10px;
+      }
+
+      .contenedor {
+        padding: 17px;
+        margin: 10px auto;
+      }
+
+      .indicadores {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="contenedor">
+
+    <header>
+      <h1>🌱 REBELIÓN BOTÁNICA</h1>
+      <span class="etiqueta">Sistema IoT</span>
+    </header>
+
+    <p class="estado-conexion">
+      ● Esperando conexión con el invernadero
+    </p>
+
+    <section class="indicadores">
+
+      <article class="tarjeta">
+        <h2>🌡️ Temperatura</h2>
+        <p class="valor">-- <span class="unidad">°C</span></p>
+      </article>
+
+      <article class="tarjeta">
+        <h2>💧 Humedad ambiente</h2>
+        <p class="valor">-- <span class="unidad">%</span></p>
+      </article>
+
+      <article class="tarjeta">
+        <h2>🌿 Humedad del suelo</h2>
+        <p class="valor">-- <span class="unidad">%</span></p>
+      </article>
+
+      <article class="tarjeta">
+        <h2>☀️ Iluminación</h2>
+        <p class="valor">--</p>
+      </article>
+
+    </section>
+
+    <section class="controles">
+
+      <h2>⚙️ Control del invernadero</h2>
+
+      <p style="margin-bottom:12px;">Modo de funcionamiento</p>
+
+      <div class="modos">
+        <button class="seleccionado" disabled>Automático</button>
+        <button disabled>Manual</button>
+      </div>
+
+      <div class="actuador">
+        <strong>🌀 Ventilador</strong>
+        <button disabled>Esperando conexión</button>
+      </div>
+
+      <div class="actuador">
+        <strong>💧 Bomba de agua</strong>
+        <button disabled>Esperando conexión</button>
+      </div>
+
+      <p class="nota">
+        Los controles se habilitarán cuando conectemos la página
+        con el NodeMCU ESP8266.
+      </p>
+
+    </section>
+
+    <footer>
+      REBELIÓN BOTÁNICA · INVERNADERO INTELIGENTE
+      <br>
+      Electrónica · Automatización · IOT
+    </footer>
+
+  </main>
+
+</body>
+</html>
