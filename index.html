@@ -186,7 +186,13 @@
     <p class="estado-conexion">
       ● Esperando conexión con el invernadero
     </p>
-
+    
+<div class="actualizar-Panel">
+  <button onclick="actualizarDatos()" id="btnActualizar">
+    🔄 Actualizar datos
+  </button>
+  <span id="ultimaActualizacion">Esperando datos...</span>
+</div>
 
 <section class="indicadores">
 
@@ -194,21 +200,25 @@
     <h2>🌡️ Temperatura</h2>
     <p class="valor"><span id="temperatura">--</span> <span class="unidad">°C</span></p>
   </article>
+  <small id="horaTemperatura">Lectura: --</small>
 
   <article class="tarjeta">
     <h2>💧 Humedad ambiente</h2>
     <p class="valor"><span id="humedadAire">--</span> <span class="unidad">%</span></p>
   </article>
+  <small id="horaAire">Lectura: --</small>
 
   <article class="tarjeta">
     <h2>🌿 Humedad del suelo</h2>
     <p class="valor"><span id="humedadSuelo">--</span> <span class="unidad">%</span></p>
   </article>
+  <small id="horaSuelo">Lectura: --</small>
 
   <article class="tarjeta">
     <h2>☀️ Iluminación</h2>
     <p class="valor"><span id="iluminacion">--</span></p>
   </article>
+  <small id="horaLuz">Lectura: --</small>
 
 </section>
 
@@ -252,8 +262,14 @@
 <script>
 const CANAL = "3554557";
 
+
 async function actualizarDatos() {
+  const boton = document.getElementById("btnActualizar");
+
   try {
+    boton.disabled = true;
+    boton.textContent = "⏳ Actualizando...";
+
     const respuesta = await fetch(
       `https://api.thingspeak.com/channels/${CANAL}/feeds/last.json`
     );
@@ -264,25 +280,45 @@ async function actualizarDatos() {
 
     const datos = await respuesta.json();
 
-    document.getElementById("temperatura").textContent =
-      datos.field1 ?? "--";
+    // Convertir fecha y hora al horario argentino
+    const fecha = new Date(datos.created_at);
 
-    document.getElementById("humedadAire").textContent =
-      datos.field2 ?? "--";
+    const hora = fecha.toLocaleTimeString("es-AR", {
+      timeZone: "America/Argentina/Cordoba",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
 
-    document.getElementById("humedadSuelo").textContent =
-      datos.field3 ?? "--";
+    // Actualizar mediciones
+    document.getElementById("temperatura").textContent = datos.field1 ?? "--";
+    document.getElementById("humedadAire").textContent = datos.field2 ?? "--";
+    document.getElementById("humedadSuelo").textContent = datos.field3 ?? "--";
 
     document.getElementById("iluminacion").textContent =
       datos.field4 == null ? "--" :
       Number(datos.field4) === 100 ? "Con luz" : "Oscuridad";
 
-    console.log("Datos actualizados:", datos);
+    // Actualizar hora de cada lectura
+    document.getElementById("horaTemperatura").textContent = "Lectura: " + hora;
+    document.getElementById("horaAire").textContent = "Lectura: " + hora;
+    document.getElementById("horaSuelo").textContent = "Lectura: " + hora;
+    document.getElementById("horaLuz").textContent = "Lectura: " + hora;
+
+    document.getElementById("ultimaActualizacion").textContent =
+      "Último registro: " + hora;
 
   } catch (error) {
-    console.error("Error de conexión:", error);
+    console.error("Error:", error);
+    document.getElementById("ultimaActualizacion").textContent =
+      "Error al actualizar los datos";
+
+  } finally {
+    boton.disabled = false;
+    boton.textContent = "🔄 Actualizar datos";
   }
 }
+
 
 actualizarDatos();
 setInterval(actualizarDatos, 20000);
