@@ -1,328 +1,359 @@
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080d0a">
   <title>Rebelión Botánica | Invernadero Inteligente</title>
-
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: Arial, sans-serif;
-      background: #080d0a;
-      color: #e8f1eb;
-      padding: 20px;
-    }
-
-    .contenedor {
-      max-width: 850px;
-      margin: 25px auto;
-      background: #101a13;
-      border: 1px solid #263d2d;
-      border-radius: 18px;
-      padding: 25px;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 25px;
-    }
-
-    h1 {
-      font-size: 24px;
-      color: #65df91;
-    }
-
-    .etiqueta {
-      background: #123c25;
-      color: #65df91;
-      padding: 8px 13px;
-      border-radius: 20px;
-      font-size: 13px;
-    }
-
-    .estado-conexion {
-      color: #aab9ad;
-      font-size: 13px;
-      margin-bottom: 20px;
-    }
-
-    .indicadores {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 14px;
-    }
-
-    .tarjeta {
-      background: #17251b;
-      border: 1px solid #263d2d;
-      border-radius: 13px;
-      padding: 20px;
-    }
-
-    .tarjeta h2 {
-      font-size: 16px;
-      margin-bottom: 18px;
-      color: #c5d9ca;
-    }
-
-    .valor {
-      font-size: 30px;
-      font-weight: bold;
-      color: #65df91;
-    }
-
-    .unidad {
-      font-size: 16px;
-      color: #aab9ad;
-    }
-
-    .controles {
-      margin-top: 30px;
-      border-top: 1px solid #263d2d;
-      padding-top: 25px;
-    }
-
-    .controles h2 {
-      font-size: 19px;
-      margin-bottom: 18px;
-    }
-
-    .modos {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 22px;
-    }
-
-    button {
-      border: 1px solid #35533d;
-      background: #17251b;
-      color: #dcebe0;
-      padding: 12px 18px;
-      border-radius: 9px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    button.seleccionado {
-      background: #176b38;
-      border-color: #65df91;
-      color: white;
-    }
-
-    button:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .actuador {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 0;
-      border-bottom: 1px solid #263d2d;
-    }
-
-    .actuador strong {
-      font-size: 16px;
-    }
-
-    .nota {
-      color: #91a397;
-      font-size: 12px;
-      margin-top: 20px;
-      line-height: 1.5;
-    }
-
-    footer {
-      text-align: center;
-      color: #718579;
-      font-size: 12px;
-      margin-top: 25px;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #080d0a; color: #e8f1eb; padding: 20px; }
+    .contenedor { max-width: 980px; margin: 25px auto; background: #101a13; border: 1px solid #263d2d; border-radius: 18px; padding: 25px; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    h1 { font-size: 24px; color: #65df91; }
+    .etiqueta { background: #123c25; color: #65df91; padding: 8px 13px; border-radius: 20px; font-size: 13px; }
+    .estado-conexion { color: #aab9ad; font-size: 13px; margin-bottom: 18px; }
+    .estado-punto { display:inline-block; width:9px; height:9px; border-radius:50%; background:#829188; margin-right:7px; }
+    .estado-punto.ok { background:#65df91; box-shadow:0 0 8px #65df91; }
+    .estado-punto.error { background:#ff7272; }
+    .barra-actualizacion { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin: 0 0 18px; color:#91a397; font-size:12px; }
+    .indicadores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .tarjeta { background: #17251b; border: 1px solid #263d2d; border-radius: 13px; padding: 18px; min-width:0; }
+    .tarjeta h2 { font-size: 15px; margin-bottom: 13px; color: #c5d9ca; }
+    .valor { font-size: 30px; font-weight: bold; color: #65df91; overflow-wrap:anywhere; }
+    .unidad { font-size: 15px; color: #aab9ad; }
+    .hora-lectura { color:#91a397; font-size:11px; margin-top:10px; }
+    .controles { margin-top: 30px; border-top: 1px solid #263d2d; padding-top: 25px; }
+    .controles h2 { font-size: 19px; margin-bottom: 10px; }
+    .subtitulo { color:#91a397; font-size:13px; line-height:1.5; margin-bottom:18px; }
+    .conexion-mqtt { background:#142219; border:1px solid #35533d; border-radius:13px; padding:16px; margin-bottom:18px; }
+    .conexion-mqtt h3 { font-size:15px; margin-bottom:10px; color:#c5d9ca; }
+    .fila-conexion { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+    .campo { flex:1; min-width:220px; }
+    label { display:block; color:#aab9ad; font-size:12px; margin-bottom:7px; }
+    input { width:100%; border:1px solid #35533d; background:#080d0a; color:#e8f1eb; padding:12px; border-radius:9px; font-size:14px; }
+    button { border:1px solid #35533d; background:#17251b; color:#dcebe0; padding:11px 15px; border-radius:9px; cursor:pointer; font-size:14px; transition:background .15s, border-color .15s; }
+    button:hover:not(:disabled) { border-color:#65df91; }
+    button:disabled { opacity:.42; cursor:not-allowed; }
+    button.primario { background:#176b38; border-color:#65df91; color:white; font-weight:bold; }
+    button.secundario { background:#26352b; }
+    button.peligro { border-color:#754040; background:#382020; }
+    .estado-mqtt { color:#aab9ad; font-size:12px; margin-top:11px; line-height:1.5; }
+    .estado-mqtt.ok { color:#65df91; }
+    .estado-mqtt.error { color:#ff9292; }
+    .modos { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0 18px; }
+    .modo-activo { background:#176b38; border-color:#65df91; color:white; }
+    .fila-actuador { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:15px 0; border-bottom:1px solid #263d2d; flex-wrap:wrap; }
+    .fila-actuador strong { font-size:16px; }
+    .acciones { display:flex; gap:8px; }
+    .nota { color:#91a397; font-size:12px; margin-top:18px; line-height:1.55; }
+    .nota-alerta { color:#f0c77c; }
+    footer { text-align:center; color:#718579; font-size:12px; margin-top:25px; line-height:1.7; }
     @media (max-width: 550px) {
-      body {
-        padding: 10px;
-      }
-
-      .contenedor {
-        padding: 17px;
-        margin: 10px auto;
-      }
-
-      .indicadores {
-        grid-template-columns: 1fr;
-      }
-
-      h1 {
-        font-size: 20px;
-      }
+      body { padding:10px; }
+      .contenedor { padding:17px; margin:10px auto; }
+      .indicadores { grid-template-columns:1fr; }
+      h1 { font-size:20px; }
+      .fila-actuador { align-items:flex-start; }
+      .acciones { width:100%; }
+      .acciones button { flex:1; }
     }
   </style>
 </head>
-
 <body>
-
   <main class="contenedor">
-
     <header>
       <h1>🌱 REBELIÓN BOTÁNICA</h1>
       <span class="etiqueta">Sistema IoT</span>
     </header>
 
-    <p class="estado-conexion">
-      ● Esperando conexión con el invernadero
-    </p>
-    
-<div class="actualizar-Panel">
-  <button onclick="actualizarDatos()" id="btnActualizar">
-    🔄 Actualizar datos
-  </button>
-  <span id="ultimaActualizacion">Esperando datos...</span>
-</div>
+    <p class="estado-conexion"><span class="estado-punto" id="puntoDatos"></span><span id="estadoDatos">Consultando ThingSpeak...</span></p>
 
-<section class="indicadores">
+    <div class="barra-actualizacion">
+      <span id="ultimaActualizacion">Esperando datos...</span>
+      <button id="btnActualizar" type="button" onclick="actualizarDatos()">🔄 Actualizar datos</button>
+    </div>
 
-  <article class="tarjeta">
-    <h2>🌡️ Temperatura</h2>
-    <p class="valor"><span id="temperatura">--</span> <span class="unidad">°C</span></p>
-  </article>
-  <small id="horaTemperatura">Lectura: --</small>
+    <section class="indicadores" aria-label="Mediciones del invernadero">
+      <article class="tarjeta">
+        <h2>🌡️ Temperatura</h2>
+        <p class="valor"><span id="temperatura">--</span> <span class="unidad">°C</span></p>
+        <p class="hora-lectura" id="horaTemperatura">Lectura: --</p>
+      </article>
+      <article class="tarjeta">
+        <h2>💧 Humedad ambiente</h2>
+        <p class="valor"><span id="humedadAire">--</span> <span class="unidad">%</span></p>
+        <p class="hora-lectura" id="horaAire">Lectura: --</p>
+      </article>
+      <article class="tarjeta">
+        <h2>🌿 Humedad del suelo</h2>
+        <p class="valor"><span id="humedadSuelo">--</span> <span class="unidad">%</span></p>
+        <p class="hora-lectura" id="horaSuelo">Lectura: --</p>
+      </article>
+      <article class="tarjeta">
+        <h2>☀️ Iluminación</h2>
+        <p class="valor" id="iluminacion">--</p>
+        <p class="hora-lectura" id="horaLuz">Lectura: --</p>
+      </article>
+      <article class="tarjeta">
+        <h2>📟 Lectura ADC del suelo</h2>
+        <p class="valor" id="adcSuelo">--</p>
+        <p class="hora-lectura" id="horaADC">Lectura: --</p>
+      </article>
+    </section>
 
-  <article class="tarjeta">
-    <h2>💧 Humedad ambiente</h2>
-    <p class="valor"><span id="humedadAire">--</span> <span class="unidad">%</span></p>
-  </article>
-  <small id="horaAire">Lectura: --</small>
-
-  <article class="tarjeta">
-    <h2>🌿 Humedad del suelo</h2>
-    <p class="valor"><span id="humedadSuelo">--</span> <span class="unidad">%</span></p>
-  </article>
-  <small id="horaSuelo">Lectura: --</small>
-
-  <article class="tarjeta">
-    <h2>☀️ Iluminación</h2>
-    <p class="valor"><span id="iluminacion">--</span></p>
-  </article>
-  <small id="horaLuz">Lectura: --</small>
-
-</section>
-
-
-    <section class="controles">
-
+    <section class="controles" aria-label="Control remoto del invernadero">
       <h2>⚙️ Control del invernadero</h2>
+      <p class="subtitulo">Los comandos se envían por MQTT seguro a Ioteris. Para habilitar los controles, conectá el token de tu dispositivo.</p>
 
-      <p style="margin-bottom:12px;">Modo de funcionamiento</p>
+      <div class="conexion-mqtt">
+        <h3>🔐 Conexión segura con Ioteris</h3>
+        <div class="fila-conexion">
+          <div class="campo">
+            <label for="tokenDispositivo">Token del dispositivo Ioteris</label>
+            <input id="tokenDispositivo" type="password" autocomplete="off" spellcheck="false" placeholder="Pegá aquí el token del dispositivo">
+          </div>
+          <button class="primario" id="btnConectar" type="button" onclick="conectarMQTT()">Conectar</button>
+          <button class="secundario" id="btnDesconectar" type="button" onclick="desconectarMQTT()" disabled>Desconectar</button>
+        </div>
+        <p class="estado-mqtt" id="estadoMQTT" role="status">Desconectado. El token se usa solamente en esta sesión y no se guarda en el archivo.</p>
+      </div>
 
+      <p style="margin-bottom:10px;">Modo de funcionamiento</p>
       <div class="modos">
-        <button class="seleccionado" disabled>Automático</button>
-        <button disabled>Manual</button>
+        <button id="btnAuto" type="button" onclick="enviarModo(false)" disabled>🤖 AUTOMÁTICO</button>
+        <button id="btnManual" type="button" onclick="enviarModo(true)" disabled>🖐️ MANUAL</button>
       </div>
+      <p class="estado-mqtt" id="estadoModo">Modo no seleccionado desde esta página.</p>
 
-      <div class="actuador">
+      <div class="fila-actuador">
         <strong>🌀 Ventilador</strong>
-        <button disabled>Esperando conexión</button>
+        <div class="acciones">
+          <button id="ventiladorOn" type="button" onclick="enviarActuador('ventilador', true)" disabled>Encender</button>
+          <button id="ventiladorOff" class="peligro" type="button" onclick="enviarActuador('ventilador', false)" disabled>Apagar</button>
+        </div>
       </div>
-
-      <div class="actuador">
+      <div class="fila-actuador">
         <strong>💧 Bomba de agua</strong>
-        <button disabled>Esperando conexión</button>
+        <div class="acciones">
+          <button id="bombaOn" type="button" onclick="enviarActuador('bomba', true)" disabled>Encender</button>
+          <button id="bombaOff" class="peligro" type="button" onclick="enviarActuador('bomba', false)" disabled>Apagar</button>
+        </div>
       </div>
 
-      <p class="nota">
-        Los controles se habilitarán cuando conectemos la página
-        con el NodeMCU ESP8266.
-      </p>
-
+      <p class="nota">Primero seleccioná MANUAL para habilitar los actuadores. AUTOMÁTICO devuelve el control a los sensores del NodeMCU. Si se corta MQTT, esta página bloquea los botones y el firmware aplica el apagado de seguridad para órdenes remotas.</p>
+      <p class="nota nota-alerta">Seguridad: no escribas el token dentro del código HTML ni lo subas a GitHub. Pegalo en el campo de conexión cuando uses la página. Se mantiene solo en memoria durante esta sesión; al recargar, tendrás que volver a ingresarlo.</p>
+      <p class="nota">El indicador de conexión MQTT confirma la conexión de esta página con el broker. Las mediciones se consultan directamente desde ThingSpeak. El estado físico final de los actuadores debe verificarse en el equipo/Monitor Serie.</p>
     </section>
 
     <footer>
-      REBELIÓN BOTÁNICA · INVERNADERO INTELIGENTE
-      <br>
-      Electrónica · Automatización · IOT
+      REBELIÓN BOTÁNICA · INVERNADERO INTELIGENTE<br>
+      Electrónica · Automatización · IoT
     </footer>
-
   </main>
 
-<script>
-const CANAL = "3554557";
+  <!-- Cliente MQTT para navegador. La conexión usa WebSocket seguro (WSS). -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    const CANAL = "3554557";
+    const MQTT_HOST = "ioteris.com.ar";
+    const MQTT_PORT = 8084;
+    // Ruta WebSocket MQTT habitual. Si el servidor de Ioteris usa otra ruta,
+    // la conexión informará el error y habrá que confirmar la ruta en su documentación.
+    const MQTT_PATH = "/mqtt";
 
+    let clienteMQTT = null;
+    let tokenSesion = "";
+    let modoSeleccionado = null; // null obliga a seleccionar AUTO o MANUAL tras conectar/reconectar.
 
-async function actualizarDatos() {
-  const boton = document.getElementById("btnActualizar");
+    const $ = (id) => document.getElementById(id);
 
-  try {
-    boton.disabled = true;
-    boton.textContent = "⏳ Actualizando...";
-
-    const respuesta = await fetch(
-      `https://api.thingspeak.com/channels/${CANAL}/feeds/last.json`
-    );
-
-    if (!respuesta.ok) {
-      throw new Error("No se pudo consultar ThingSpeak");
+    function mostrarEstadoMQTT(texto, tipo = "") {
+      const elemento = $("estadoMQTT");
+      elemento.textContent = texto;
+      elemento.className = "estado-mqtt" + (tipo ? " " + tipo : "");
     }
 
-    const datos = await respuesta.json();
+    function actualizarControles() {
+      const conectado = !!(clienteMQTT && clienteMQTT.connected);
+      $("btnConectar").disabled = conectado;
+      $("btnDesconectar").disabled = !conectado;
+      $("btnAuto").disabled = !conectado;
+      $("btnManual").disabled = !conectado;
+      const habilitarActuadores = conectado && modoSeleccionado === "manual";
+      ["ventiladorOn", "ventiladorOff", "bombaOn", "bombaOff"].forEach(id => {
+        $(id).disabled = !habilitarActuadores;
+      });
+      $("btnAuto").classList.toggle("modo-activo", conectado && modoSeleccionado === "auto");
+      $("btnManual").classList.toggle("modo-activo", conectado && modoSeleccionado === "manual");
+    }
 
-    // Convertir fecha y hora al horario argentino
-    const fecha = new Date(datos.created_at);
+    function desconectarMQTT() {
+      modoSeleccionado = null;
+      actualizarControles();
+      if (clienteMQTT) {
+        const viejo = clienteMQTT;
+        clienteMQTT = null;
+        viejo.end(true);
+      }
+      tokenSesion = "";
+      $("tokenDispositivo").value = "";
+      $("estadoModo").textContent = "Modo no seleccionado. Al reconectar, elegí AUTO o MANUAL nuevamente.";
+      mostrarEstadoMQTT("Desconectado de Ioteris.");
+      actualizarControles();
+    }
 
-    const hora = fecha.toLocaleTimeString("es-AR", {
-      timeZone: "America/Argentina/Cordoba",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
+    function conectarMQTT() {
+      if (typeof mqtt === "undefined") {
+        mostrarEstadoMQTT("No se pudo cargar el cliente MQTT del navegador. Revisá la conexión a Internet y recargá la página.", "error");
+        return;
+      }
+      const token = $("tokenDispositivo").value.trim();
+      if (!token) {
+        mostrarEstadoMQTT("Ingresá el token del dispositivo para conectar.", "error");
+        $("tokenDispositivo").focus();
+        return;
+      }
+      if (clienteMQTT) clienteMQTT.end(true);
+      modoSeleccionado = null;
+      tokenSesion = token;
+      mostrarEstadoMQTT("Conectando a Ioteris por WSS (puerto 8084)...");
+      $("estadoModo").textContent = "Seleccioná AUTO o MANUAL cuando se establezca la conexión.";
+      actualizarControles();
 
-    // Actualizar mediciones
-    document.getElementById("temperatura").textContent = datos.field1 ?? "--";
-    document.getElementById("humedadAire").textContent = datos.field2 ?? "--";
-    document.getElementById("humedadSuelo").textContent = datos.field3 ?? "--";
+      const clientId = "webRebelionBotanica_" + Math.random().toString(16).slice(2, 10);
+      const url = `wss://${MQTT_HOST}:${MQTT_PORT}${MQTT_PATH}`;
+      const nuevoCliente = mqtt.connect(url, {
+        username: token,
+        password: token,
+        clientId,
+        clean: true,
+        connectTimeout: 10000,
+        reconnectPeriod: 0,
+        keepalive: 30,
+        protocolVersion: 4
+      });
+      clienteMQTT = nuevoCliente;
 
-    document.getElementById("iluminacion").textContent =
-      datos.field4 == null ? "--" :
-      Number(datos.field4) === 100 ? "Con luz" : "Oscuridad";
+      nuevoCliente.on("connect", () => {
+        if (clienteMQTT !== nuevoCliente) return;
+        mostrarEstadoMQTT("Conectado al broker Ioteris. Elegí AUTO o MANUAL para habilitar los controles.", "ok");
+        $("tokenDispositivo").value = ""; // no dejar el token visible en el campo
+        actualizarControles();
+      });
 
-    // Actualizar hora de cada lectura
-    document.getElementById("horaTemperatura").textContent = "Lectura: " + hora;
-    document.getElementById("horaAire").textContent = "Lectura: " + hora;
-    document.getElementById("horaSuelo").textContent = "Lectura: " + hora;
-    document.getElementById("horaLuz").textContent = "Lectura: " + hora;
+      nuevoCliente.on("error", (error) => {
+        if (clienteMQTT !== nuevoCliente) return;
+        const msg = error && error.message ? error.message : "Error de conexión MQTT";
+        mostrarEstadoMQTT("No se pudo conectar: " + msg + ". Revisá token, puerto y ruta WebSocket.", "error");
+      });
 
-    document.getElementById("ultimaActualizacion").textContent =
-      "Último registro: " + hora;
+      nuevoCliente.on("close", () => {
+        if (clienteMQTT !== nuevoCliente) return;
+        modoSeleccionado = null;
+        $("estadoModo").textContent = "Conexión perdida. Elegí AUTO o MANUAL nuevamente al reconectar.";
+        mostrarEstadoMQTT("Conexión MQTT cerrada. Los controles quedaron bloqueados.", "error");
+        actualizarControles();
+      });
 
-  } catch (error) {
-    console.error("Error:", error);
-    document.getElementById("ultimaActualizacion").textContent =
-      "Error al actualizar los datos";
+      nuevoCliente.on("offline", () => {
+        if (clienteMQTT !== nuevoCliente) return;
+        modoSeleccionado = null;
+        $("estadoModo").textContent = "Conexión perdida. Elegí AUTO o MANUAL nuevamente al reconectar.";
+        mostrarEstadoMQTT("Página sin conexión MQTT. Los controles quedaron bloqueados.", "error");
+        actualizarControles();
+      });
+    }
 
-  } finally {
-    boton.disabled = false;
-    boton.textContent = "🔄 Actualizar datos";
-  }
-}
+    function publicarComando(payload, descripcion, alEnviar) {
+      if (!clienteMQTT || !clienteMQTT.connected) {
+        mostrarEstadoMQTT("No hay conexión MQTT. Conectá primero la página con Ioteris.", "error");
+        actualizarControles();
+        return;
+      }
+      const topic = `devices/${tokenSesion}/cmd`;
+      const mensaje = JSON.stringify(payload);
+      clienteMQTT.publish(topic, mensaje, { qos: 0, retain: false }, (error) => {
+        if (error) {
+          mostrarEstadoMQTT("Error al enviar " + descripcion + ": " + error.message, "error");
+        } else {
+          mostrarEstadoMQTT("Orden enviada al broker: " + mensaje + ". Verificá la respuesta del dispositivo.", "ok");
+          if (typeof alEnviar === "function") alEnviar();
+        }
+      });
+    }
 
+    function enviarModo(manual) {
+      publicarComando({ manual: !!manual }, manual ? "modo MANUAL" : "modo AUTOMÁTICO", () => {
+        modoSeleccionado = manual ? "manual" : "auto";
+        $("estadoModo").textContent = manual
+          ? "Modo seleccionado desde esta página: MANUAL. Ya podés controlar bomba y ventilador."
+          : "Modo seleccionado desde esta página: AUTOMÁTICO. Los actuadores quedan bajo control local del NodeMCU.";
+        actualizarControles();
+      });
+    }
 
-actualizarDatos();
-setInterval(actualizarDatos, 20000);
-</script>
+    function enviarActuador(nombre, encender) {
+      if (modoSeleccionado !== "manual") {
+        mostrarEstadoMQTT("Primero seleccioná MANUAL.", "error");
+        return;
+      }
+      const payload = {};
+      payload[nombre] = !!encender;
+      publicarComando(payload, nombre, () => {
+        const nombreVisible = nombre === "bomba" ? "Bomba" : "Ventilador";
+        $("estadoModo").textContent = `${nombreVisible}: orden ${encender ? "ENCENDER" : "APAGAR"} enviada. Comprobá el estado físico del actuador.`;
+      });
+    }
 
+    function formatearHora(fecha) {
+      return fecha.toLocaleTimeString("es-AR", {
+        timeZone: "America/Argentina/Cordoba",
+        hour: "2-digit", minute: "2-digit", second: "2-digit"
+      });
+    }
+
+    async function actualizarDatos() {
+      const boton = $("btnActualizar");
+      try {
+        boton.disabled = true;
+        boton.textContent = "⏳ Actualizando...";
+        const respuesta = await fetch(`https://api.thingspeak.com/channels/${CANAL}/feeds/last.json`, { cache: "no-store" });
+        if (!respuesta.ok) throw new Error("No se pudo consultar ThingSpeak (HTTP " + respuesta.status + ")");
+        const datos = await respuesta.json();
+        if (!datos.created_at) throw new Error("ThingSpeak no devolvió la fecha de la última lectura");
+
+        const fecha = new Date(datos.created_at);
+        const hora = formatearHora(fecha);
+        const mostrar = (valor) => valor == null || valor === "" ? "--" : valor;
+        $("temperatura").textContent = mostrar(datos.field1);
+        $("humedadAire").textContent = mostrar(datos.field2);
+        $("humedadSuelo").textContent = mostrar(datos.field3);
+        $("iluminacion").textContent = datos.field4 == null ? "--" : (Number(datos.field4) === 100 ? "Con luz" : "Oscuridad");
+        $("adcSuelo").textContent = mostrar(datos.field5);
+        ["horaTemperatura", "horaAire", "horaSuelo", "horaLuz", "horaADC"].forEach(id => $(id).textContent = "Lectura: " + hora);
+        $("ultimaActualizacion").textContent = "Último registro ThingSpeak: " + hora;
+
+        const segundos = Math.max(0, Math.floor((Date.now() - fecha.getTime()) / 1000));
+        const datosFrescos = segundos <= 75;
+        $("puntoDatos").className = "estado-punto" + (datosFrescos ? " ok" : " error");
+        $("estadoDatos").textContent = datosFrescos
+          ? `Datos del invernadero actualizados hace ${segundos} s.`
+          : `Última lectura hace ${Math.floor(segundos / 60)} min. Revisar conexión del dispositivo.`;
+      } catch (error) {
+        console.error("Error ThingSpeak:", error);
+        $("puntoDatos").className = "estado-punto error";
+        $("estadoDatos").textContent = "No se pudieron actualizar las mediciones.";
+        $("ultimaActualizacion").textContent = error.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = "🔄 Actualizar datos";
+      }
+    }
+
+    actualizarDatos();
+    setInterval(actualizarDatos, 20000);
+    actualizarControles();
+  </script>
 </body>
 </html>
