@@ -4,6 +4,8 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
+#include <ESP8266WebServer.h>
+#include <LittleFS.h>
 
 // =====================================================
 // CREDENCIALES
@@ -34,6 +36,9 @@ String topicComandos;
 #define PIN_LUZ D0
 
 DHT dht(PIN_DHT, TIPO_DHT);
+
+// Servidor web local: interfaz almacenada en LittleFS (carpeta data).
+ESP8266WebServer servidorWeb(80);
 
 // Calibracion FC-28 (valores originales)
 const int VALOR_SECO = 1024;
@@ -72,6 +77,11 @@ unsigned long ultimoIntentoMQTT = 0;
 bool modoAutomatico = true;
 bool ventiladorEncendido = false;
 bool bombaEncendida = false;
+
+// Indica si el ultimo control de actuadores provino de Ioteris (MQTT).
+// Las ordenes locales del Monitor Serie no dependen de Internet.
+bool controlRemotoActivo = false;
+bool wifiConectadoAnterior = false;
 
 float temperatura = NAN;
 float humedadAire = NAN;
@@ -112,6 +122,7 @@ void apagarTodo() {
 // =====================================================
 void activarManual() {
   apagarTodo();
+  controlRemotoActivo = false;
   modoAutomatico = false;
   Serial.println();
   Serial.println("MODO MANUAL ACTIVADO. Actuadores apagados.");
@@ -119,6 +130,7 @@ void activarManual() {
 
 void activarAutomatico() {
   apagarTodo();
+  controlRemotoActivo = false;
   modoAutomatico = true;
   Serial.println();
   Serial.println("MODO AUTOMATICO ACTIVADO. Actuadores apagados.");
@@ -164,24 +176,28 @@ void procesarComandoSerie() {
     case 'A': activarAutomatico(); break;
     case 'V':
       if (!modoAutomatico) {
+        controlRemotoActivo = false;
         encenderVentilador();
         Serial.println("MANUAL: VENTILADOR ENCENDIDO");
       } else Serial.println("Cambie a modo M para control manual.");
       break;
     case 'v':
       if (!modoAutomatico) {
+        controlRemotoActivo = false;
         apagarVentilador();
         Serial.println("MANUAL: VENTILADOR APAGADO");
       } else Serial.println("Cambie a modo M para control manual.");
       break;
     case 'B':
       if (!modoAutomatico) {
+        controlRemotoActivo = false;
         encenderBomba();
         Serial.println("MANUAL: BOMBA ENCENDIDA");
       } else Serial.println("Cambie a modo M para control manual.");
       break;
     case 'b':
       if (!modoAutomatico) {
+        controlRemotoActivo = false;
         apagarBomba();
         Serial.println("MANUAL: BOMBA APAGADA");
       } else Serial.println("Cambie a modo M para control manual.");
@@ -224,31 +240,60 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
     return;
   }
 
+  // Ioteris puede enviar claves con espacios accidentales, por ejemplo
+  // {"bomba ":true}. Normalizamos cada clave quitando espacios al inicio/final.
+  bool tieneManual = false;
+  bool manualSolicitado = false;
+  bool tieneBomba = false;
+  bool bombaSolicitada = false;
+  bool tieneVentilador = false;
+  bool ventiladorSolicitado = false;
+
+  JsonObjectConst objeto = doc.as<JsonObjectConst>();
+  for (JsonPairConst par : objeto) {
+    String clave = par.key().c_str();
+    clave.trim();
+
+    if (clave == "manual") {
+      tieneManual = true;
+      manualSolicitado = par.value().as<bool>();
+    } else if (clave == "bomba") {
+      tieneBomba = true;
+      bombaSolicitada = par.value().as<bool>();
+    } else if (clave == "ventilador") {
+      tieneVentilador = true;
+      ventiladorSolicitado = par.value().as<bool>();
+    } else {
+      Serial.print("MQTT: clave no reconocida: '");
+      Serial.print(clave);
+      Serial.println("'");
+    }
+  }
+
   // El control de modo se procesa antes que los actuadores.
-  if (doc.containsKey("manual")) {
-    bool manualSolicitado = doc["manual"].as<bool>();
+  if (tieneManual) {
     if (manualSolicitado && modoAutomatico) activarManual();
     if (!manualSolicitado && !modoAutomatico) activarAutomatico();
   }
 
   // Nunca aceptar órdenes de actuadores si estamos en AUTO.
   if (modoAutomatico) {
-    if (doc.containsKey("bomba") || doc.containsKey("ventilador")) {
+    if (tieneBomba || tieneVentilador) {
       Serial.println("Orden de actuador ignorada: el sistema esta en AUTO.");
     }
     return;
   }
 
-  if (doc.containsKey("bomba")) {
-    bool estado = doc["bomba"].as<bool>();
-    if (estado) encenderBomba(); else apagarBomba();
-    Serial.println(estado ? "MQTT: BOMBA ENCENDIDA" : "MQTT: BOMBA APAGADA");
+  if (tieneBomba) {
+    controlRemotoActivo = true;
+    if (bombaSolicitada) encenderBomba(); else apagarBomba();
+    Serial.println(bombaSolicitada ? "MQTT: BOMBA ENCENDIDA" : "MQTT: BOMBA APAGADA");
   }
 
-  if (doc.containsKey("ventilador")) {
-    bool estado = doc["ventilador"].as<bool>();
-    if (estado) encenderVentilador(); else apagarVentilador();
-    Serial.println(estado ? "MQTT: VENTILADOR ENCENDIDO" : "MQTT: VENTILADOR APAGADO");
+  if (tieneVentilador) {
+    controlRemotoActivo = true;
+    if (ventiladorSolicitado) encenderVentilador(); else apagarVentilador();
+    Serial.println(ventiladorSolicitado ? "MQTT: VENTILADOR ENCENDIDO" : "MQTT: VENTILADOR APAGADO");
   }
 }
 
@@ -256,12 +301,27 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
 // CONEXION WIFI NO BLOQUEANTE
 // =====================================================
 void gestionarWiFi(unsigned long ahora) {
-  if (WiFi.status() == WL_CONNECTED) return;
+  bool conectado = (WiFi.status() == WL_CONNECTED);
+
+  if (conectado) {
+    if (!wifiConectadoAnterior) {
+      Serial.print("WiFi conectado. IP: ");
+      Serial.println(WiFi.localIP());
+    }
+    wifiConectadoAnterior = true;
+    return;
+  }
+
+  if (wifiConectadoAnterior) {
+    Serial.println("WiFi perdido. El control local continua.");
+    wifiConectadoAnterior = false;
+  }
 
   if (ahora - ultimoIntentoWiFi >= INTERVALO_WIFI) {
     ultimoIntentoWiFi = ahora;
-    Serial.println("WiFi desconectado. Intentando reconectar sin detener el control local...");
-    WiFi.begin(WIFI_NOMBRE, WIFI_CLAVE);
+    Serial.println("WiFi desconectado. Intentando reconectar...");
+    // Evita reiniciar la asociacion con WiFi.begin() repetidamente.
+    WiFi.reconnect();
   }
 }
 
@@ -370,13 +430,29 @@ void enviarThingSpeak() {
     return;
   }
 
-  WiFiClientSecure clienteHTTPS;
-  clienteHTTPS.setInsecure(); // Igual que el programa original; validar CA seria mejora posterior.
+  // Diagnostico de red antes del envio.
+  Serial.print("Heap libre antes de ThingSpeak: ");
+  Serial.println(ESP.getFreeHeap());
 
-  HTTPClient https;
-  https.setTimeout(4000);
+  IPAddress ipThingSpeak;
+  if (WiFi.hostByName("api.thingspeak.com", ipThingSpeak) != 1) {
+    Serial.println("ThingSpeak: fallo la resolucion DNS de api.thingspeak.com.");
+    return;
+  }
+  Serial.print("DNS ThingSpeak: ");
+  Serial.println(ipThingSpeak);
 
-  String url = "https://api.thingspeak.com/update?api_key=";
+  // IMPORTANTE:
+  // Ioteris mantiene una conexion MQTT cifrada TLS abierta.
+  // Para evitar abrir una segunda sesion TLS simultanea en el ESP8266,
+  // esta variante de prueba usa HTTP normal (puerto 80) para ThingSpeak.
+  // ThingSpeak admite HTTP, pero el trafico NO va cifrado.
+  // Usar solo como prueba/demostracion y no publicar esta API Key.
+  WiFiClient clienteHTTP;
+  HTTPClient http;
+  http.setTimeout(6000);
+
+  String url = "http://api.thingspeak.com/update?api_key=";
   url += API_KEY;
   url += "&field1=" + String(temperatura, 1);
   url += "&field2=" + String(humedadAire, 1);
@@ -384,21 +460,154 @@ void enviarThingSpeak() {
   url += "&field4=" + String(luzPorcentaje);
   url += "&field5=" + String(lecturaSuelo);
 
-  if (https.begin(clienteHTTPS, url)) {
-    int codigoHTTP = https.GET();
-    if (codigoHTTP > 0) {
-      String respuesta = https.getString();
-      respuesta.trim();
-      Serial.print("Respuesta ThingSpeak: "); Serial.println(respuesta);
-      if (respuesta != "0") Serial.println("Datos enviados correctamente.");
-      else Serial.println("ThingSpeak no acepto el registro.");
-    } else {
-      Serial.print("Error HTTP: "); Serial.println(codigoHTTP);
-    }
-    https.end();
-  } else {
-    Serial.println("No se pudo iniciar HTTPS hacia ThingSpeak.");
+  if (!http.begin(clienteHTTP, url)) {
+    Serial.println("ThingSpeak: no se pudo iniciar HTTP.");
+    return;
   }
+
+  int codigoHTTP = http.GET();
+  if (codigoHTTP > 0) {
+    String respuesta = http.getString();
+    respuesta.trim();
+    Serial.print("Respuesta ThingSpeak HTTP ");
+    Serial.print(codigoHTTP);
+    Serial.print(": ");
+    Serial.println(respuesta);
+
+    if (codigoHTTP == HTTP_CODE_OK && respuesta != "0" && respuesta.length() > 0) {
+      Serial.println("ThingSpeak: datos enviados correctamente.");
+    } else if (respuesta == "0") {
+      Serial.println("ThingSpeak respondio 0: revisar Write API Key o intervalo de envio.");
+    } else {
+      Serial.println("ThingSpeak: respuesta HTTP no exitosa.");
+    }
+  } else {
+    Serial.print("Error HTTP ThingSpeak: ");
+    Serial.print(codigoHTTP);
+    Serial.print(" - ");
+    Serial.println(HTTPClient::errorToString(codigoHTTP));
+  }
+
+  http.end();
+  Serial.print("Heap libre despues de ThingSpeak: ");
+  Serial.println(ESP.getFreeHeap());
+}
+
+// =====================================================
+// SERVIDOR WEB LOCAL (LittleFS + HTTP)
+// =====================================================
+String tipoContenido(String ruta) {
+  if (ruta.endsWith(".html")) return "text/html; charset=utf-8";
+  if (ruta.endsWith(".css")) return "text/css; charset=utf-8";
+  if (ruta.endsWith(".js")) return "application/javascript; charset=utf-8";
+  if (ruta.endsWith(".json")) return "application/json; charset=utf-8";
+  if (ruta.endsWith(".ico")) return "image/x-icon";
+  return "text/plain; charset=utf-8";
+}
+
+void responderJSON(JsonDocument& doc, int codigo = 200) {
+  String salida;
+  serializeJson(doc, salida);
+  servidorWeb.sendHeader("Cache-Control", "no-store");
+  servidorWeb.send(codigo, "application/json; charset=utf-8", salida);
+}
+
+void apiEstado() {
+  StaticJsonDocument<256> doc;
+  if (isnan(temperatura)) doc["temperatura"] = nullptr;
+  else doc["temperatura"] = temperatura;
+  if (isnan(humedadAire)) doc["humedad_aire"] = nullptr;
+  else doc["humedad_aire"] = humedadAire;
+  doc["humedad_suelo"] = humedadSuelo;
+  doc["luz"] = luzPorcentaje;
+  doc["modo"] = modoAutomatico ? "automatico" : "manual";
+  doc["ventilador"] = ventiladorEncendido;
+  doc["bomba"] = bombaEncendida;
+  responderJSON(doc);
+}
+
+void apiModo() {
+  if (!servidorWeb.hasArg("value")) {
+    servidorWeb.send(400, "text/plain; charset=utf-8", "Falta el parametro value");
+    return;
+  }
+  String valor = servidorWeb.arg("value");
+  valor.toLowerCase();
+  if (valor == "auto") activarAutomatico();
+  else if (valor == "manual") activarManual();
+  else {
+    servidorWeb.send(400, "text/plain; charset=utf-8", "Modo no valido");
+    return;
+  }
+  apiEstado();
+}
+
+void apiVentilador() {
+  if (modoAutomatico) {
+    servidorWeb.send(409, "text/plain; charset=utf-8", "Cambie a modo manual para controlar el ventilador");
+    return;
+  }
+  if (!servidorWeb.hasArg("state")) {
+    servidorWeb.send(400, "text/plain; charset=utf-8", "Falta el parametro state");
+    return;
+  }
+  String valor = servidorWeb.arg("state");
+  if (valor == "1") encenderVentilador();
+  else if (valor == "0") apagarVentilador();
+  else {
+    servidorWeb.send(400, "text/plain; charset=utf-8", "Estado no valido");
+    return;
+  }
+  controlRemotoActivo = false;
+  apiEstado();
+}
+
+void apiBomba() {
+  if (modoAutomatico) {
+    servidorWeb.send(409, "text/plain; charset=utf-8", "Cambie a modo manual para controlar la bomba");
+    return;
+  }
+  if (!servidorWeb.hasArg("state")) {
+    servidorWeb.send(400, "text/plain; charset=utf-8", "Falta el parametro state");
+    return;
+  }
+  String valor = servidorWeb.arg("state");
+  if (valor == "1") encenderBomba();
+  else if (valor == "0") apagarBomba();
+  else {
+    servidorWeb.send(400, "text/plain; charset=utf-8", "Estado no valido");
+    return;
+  }
+  controlRemotoActivo = false;
+  apiEstado();
+}
+
+void servirArchivoWeb() {
+  String ruta = servidorWeb.uri();
+  if (ruta.endsWith("/")) ruta += "index.html";
+  if (!LittleFS.exists(ruta)) {
+    servidorWeb.send(404, "text/plain; charset=utf-8", "Archivo no encontrado en LittleFS");
+    return;
+  }
+  File archivo = LittleFS.open(ruta, "r");
+  servidorWeb.streamFile(archivo, tipoContenido(ruta));
+  archivo.close();
+}
+
+void iniciarServidorWeb() {
+  if (!LittleFS.begin()) {
+    Serial.println("ERROR: no se pudo montar LittleFS. Revisar la carga de archivos web.");
+  } else {
+    Serial.println("LittleFS montado correctamente.");
+  }
+
+  servidorWeb.on("/api/status", HTTP_GET, apiEstado);
+  servidorWeb.on("/api/mode", HTTP_GET, apiModo);
+  servidorWeb.on("/api/fan", HTTP_GET, apiVentilador);
+  servidorWeb.on("/api/pump", HTTP_GET, apiBomba);
+  servidorWeb.onNotFound(servirArchivoWeb);
+  servidorWeb.begin();
+  Serial.println("Servidor web local iniciado en puerto 80.");
 }
 
 // =====================================================
@@ -432,11 +641,13 @@ void setup() {
   Serial.println("V/v = Ventilador ON/OFF (manual)");
   Serial.println("B/b = Bomba ON/OFF (manual)");
   Serial.println("X = Apagar todo y pasar a manual");
+  Serial.println("El control por Monitor Serie funciona aunque no haya WiFi.");
 
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
   WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_NOMBRE, WIFI_CLAVE);
+  wifiConectadoAnterior = (WiFi.status() == WL_CONNECTED);
   ultimoIntentoWiFi = millis();
 
   topicDatos = String("devices/") + DEVICE_TOKEN + "/data";
@@ -453,7 +664,10 @@ void setup() {
   mqttClient.setSocketTimeout(2);
 
   Serial.println("WiFi iniciado. El programa no espera bloqueado la conexion.");
+  Serial.println("En MANUAL, el corte de seguridad aplica solo a ordenes remotas MQTT.");
   Serial.println("Completá la nueva API Key y el token Ioteris antes de probar.");
+
+  iniciarServidorWeb();
 }
 
 // =====================================================
@@ -462,6 +676,7 @@ void setup() {
 void loop() {
   unsigned long ahora = millis();
 
+  servidorWeb.handleClient();
   procesarComandoSerie();
   gestionarWiFi(ahora);
   gestionarMQTT(ahora);
@@ -470,16 +685,17 @@ void loop() {
     mqttClient.loop();
   }
 
-  // Seguridad solicitada: en MANUAL, si se pierde WiFi o MQTT,
-  // apagar salidas. Al reconectar NO restaurar estados anteriores.
-  // El modo sigue siendo MANUAL y espera nuevos comandos.
-  if (!modoAutomatico &&
+  // Seguridad para actuadores comandados remotamente:
+  // si se pierde WiFi/MQTT en MANUAL, apagar y esperar una orden MQTT nueva.
+  // Las ordenes locales del Monitor Serie conservan el control aunque no haya Internet.
+  if (!modoAutomatico && controlRemotoActivo &&
       (WiFi.status() != WL_CONNECTED || !mqttClient.connected())) {
     if (ventiladorEncendido || bombaEncendida) {
       apagarTodo();
-      Serial.println("SEGURIDAD: conexion perdida en MANUAL. Actuadores apagados.");
+      Serial.println("SEGURIDAD MQTT: conexion perdida en MANUAL remoto. Actuadores apagados.");
       Serial.println("Al reconectar se esperan nuevas ordenes MQTT.");
     }
+    controlRemotoActivo = false;
   }
 
   // Lectura local cada 2 segundos, haya Internet o no.
